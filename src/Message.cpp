@@ -28,7 +28,7 @@
  */
 #include "Message.h"
 
-#ifndef __FreeBSD__
+#if !defined (__FreeBSD__) && !defined (__APPLE__)
 #include <malloc.h>
 #endif
 

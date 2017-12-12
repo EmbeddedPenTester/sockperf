@@ -231,7 +231,7 @@ int IoPoll::prepareNetwork()
 
 	return rc;
 }
-#ifndef __FreeBSD__
+#if !defined (__FreeBSD__) && !defined (__APPLE__)
 //==============================================================================
 //------------------------------------------------------------------------------
 IoEpoll::IoEpoll(int _fd_min, int _fd_max, int _fd_num) : IoHandler(_fd_min, _fd_max, _fd_num, 0, 0)

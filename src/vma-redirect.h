@@ -37,7 +37,7 @@
 #include <sched.h>
 #include <sys/ioctl.h>
 
-#ifdef __FreeBSD__
+#if defined (__FreeBSD__) || defined (__APPLE__)
 #include <netinet/in.h>
 #include <stdio.h>
 #else

@@ -391,7 +391,7 @@ void server_handler(handler_info *p_info)
 			server_handler<IoPoll>(p_info->fd_min, p_info->fd_max, p_info->fd_num);
 			break;
 		}
-#ifndef __FreeBSD__
+#if !defined (__FreeBSD__) && !defined (__APPLE__)
 		case EPOLL:
 		{
 			server_handler<IoEpoll>(p_info->fd_min, p_info->fd_max, p_info->fd_num);

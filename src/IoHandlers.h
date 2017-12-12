@@ -297,7 +297,7 @@ private:
 	struct pollfd *mp_poll_fd_arr;
 };
 
-#ifndef __FreeBSD__
+#if !defined (__FreeBSD__) && !defined (__APPLE__)
 //==============================================================================
 class IoEpoll: public IoHandler {
 public:

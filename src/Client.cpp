@@ -767,7 +767,7 @@ void client_handler(handler_info *p_info)
 				client_handler<IoPoll> (p_info->fd_min, p_info->fd_max, p_info->fd_num);
 				break;
 			}
-#ifndef __FreeBSD__
+#if !defined (__FreeBSD__) && !defined (__APPLE__)
 			case EPOLL:
 			{
 				client_handler<IoEpoll> (p_info->fd_min, p_info->fd_max, p_info->fd_num);

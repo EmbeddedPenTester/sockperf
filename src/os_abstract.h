@@ -117,7 +117,7 @@ void* win_set_timer(void *p_timer);
 *				FreeBSD
 ***********************************************************************************/
 
-#ifdef __FreeBSD__
+#if defined __FreeBSD__ 
 
 #include <sys/param.h>
 #include <sys/cpuset.h>
@@ -126,12 +126,22 @@ void* win_set_timer(void *p_timer);
 #define htonll htonl
 #define ntohll ntohl
 
+#elif defined __APPLE__
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <machine/endian.h>
+#include <mach/mach_init.h>
+#include <mach/thread_policy.h>
+#include <mach/thread_act.h>
+#include <pthread.h>
+#define		MAX_OPEN_FILES     	65535
+#else
+
 
 /***********************************************************************************
 *				Linux
 ***********************************************************************************/
-
-#else
 
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -167,6 +177,10 @@ void* win_set_timer(void *p_timer);
 *				Common
 ***********************************************************************************/
 
+#ifndef CPU_SETSIZE
+#define CPU_SETSIZE 1024
+#endif
+
 typedef struct os_thread_t {
 #ifdef WIN32
 	HANDLE hThread;
@@ -184,6 +198,12 @@ typedef struct os_mutex_t {
 #endif
 } os_mutex_t;
 
+#ifdef __APPLE__
+typedef struct cpu_set {
+  uint32_t    count;
+} cpu_set_t;
+
+#endif
 typedef struct os_cpuset_t {
 #ifdef WIN32
 	DWORD_PTR cpuset;

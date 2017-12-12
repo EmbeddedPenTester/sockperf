@@ -33,6 +33,16 @@
 //#include "Switches.h"
 #include "Message.h"
 
+#ifndef MSG_NOSIGNAL
+# define MSG_NOSIGNAL 0
+# ifdef SO_NOSIGPIPE
+#  define USE_SO_NOSIGPIPE
+# else
+#  error "Cannot block SIGPIPE!"
+# endif
+#endif
+
+
 extern user_params_t	s_user_params;
 //------------------------------------------------------------------------------
 void recvfromError(int fd);//take out error code from inline function
@@ -158,9 +168,18 @@ static inline int msg_recvfrom(int fd, uint8_t* buf, int nbytes, struct sockaddr
 	        Note: another way is call signal (SIGPIPE,SIG_IGN);
 	     */
 #ifndef WIN32
+#ifdef USE_SO_NOSIGPIPE
+		{
+			int val = 1;
+			int r = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void*)&val, sizeof(val));
+			if (r) {
+				printf("Error setting SO_NOSIGPIPE: %s", strerror( errno));
+			}
+		}
+#else
 		flags = MSG_NOSIGNAL;
 #endif
-
+#endif
 		ret = recvfrom(fd, buf, nbytes, flags, (struct sockaddr*)recvfrom_addr, &size);
 
 #if defined(LOG_TRACE_MSG_IN) && (LOG_TRACE_MSG_IN==TRUE)

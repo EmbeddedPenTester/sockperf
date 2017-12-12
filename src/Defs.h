@@ -60,7 +60,11 @@ typedef uint16_t in_port_t;
 
 #include <stdbool.h>
 #include <stdint.h>
+#ifdef __APPLE__
+#include <unordered_map>
+#else
 #include <tr1/unordered_map>
+#endif
 #include <unistd.h>		/* getopt() and sleep()*/
 #include <inttypes.h>		/* printf PRItn */
 #include <regex.h>
@@ -96,7 +100,7 @@ typedef uint16_t in_port_t;
 #include "Message.h"
 #include "Playback.h"
 
-#if ! defined (WIN32) && ! defined (__FreeBSD__)
+#if ! defined (WIN32) && ! defined (__FreeBSD__) && ! defined(__APPLE__)
 	#include "vma-redirect.h"
 	//#define USING_VMA_EXTRA_API
 	#ifdef  USING_VMA_EXTRA_API
@@ -481,7 +485,7 @@ typedef struct clt_session_info {
 //hash/equal_to functions, by ourself.
 namespace std
 {
-#if ! defined (WIN32) && ! defined (__FreeBSD__)
+#if ! defined (WIN32) && ! defined (__FreeBSD__) && ! defined (__APPLE__)
 	namespace tr1
 	{
 #endif
@@ -513,7 +517,7 @@ namespace std
 				return key.s_addr & 0xFF;
 			}
 		};
-#if ! defined (WIN32) && ! defined (__FreeBSD__)
+#if ! defined (WIN32) && ! defined (__FreeBSD__) && ! defined (__APPLE__)
 	} // closes namespace tr1
 #endif
 	template<>
@@ -543,7 +547,7 @@ namespace std
 		}
 	};
 }
-#ifndef __FreeBSD__
+#if ! defined ( __FreeBSD__ ) && ! defined ( __APPLE__ )
 typedef std::tr1::unordered_map<struct sockaddr_in, clt_session_info_t> seq_num_map;
 typedef std::tr1::unordered_map<struct in_addr, size_t> addr_to_id;
 #else

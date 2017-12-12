@@ -175,6 +175,8 @@ static const AOPT_DESC  common_opt_desc[] =
 		"Type of multiple file descriptors handle [s|select|r|recvfrom](default select)."
 #elif __FreeBSD__
 		"Type of multiple file descriptors handle [s|select|p|poll|r|recvfrom](default select)."
+#elif __APPLE__
+		"Type of multiple file descriptors handle [s|select|p|poll|r|recvfrom](default select)."
 #else
 		"Type of multiple file descriptors handle [s|select|p|poll|e|epoll|r|recvfrom](default epoll)."
 #endif
@@ -184,6 +186,8 @@ static const AOPT_DESC  common_opt_desc[] =
 #ifdef WIN32
 		"Set select timeout to <msec>, -1 for infinite (default is 10 msec)."
 #elif __FreeBSD__
+		"Set select/poll timeout to <msec>, -1 for infinite (default is 10 msec)."
+#elif __APPLE__
 		"Set select/poll timeout to <msec>, -1 for infinite (default is 10 msec)."
 #else
 		"Set select/poll/epoll timeout to <msec>, -1 for infinite (default is 10 msec)."
@@ -1674,7 +1678,7 @@ static int parse_common_opt( const AOPT_OBJECT *common_obj )
 				if (optarg) {
 					strncpy(feedfile_name, optarg, MAX_ARGV_SIZE);
 					feedfile_name[MAX_PATH_LENGTH - 1] = '\0';
-#if defined(WIN32) && defined(__FreeBSD__)
+#if defined(WIN32) || defined(__FreeBSD__) || defined(__APPLE__)
 					s_user_params.fd_handler_type = SELECT;
 #else
 					s_user_params.fd_handler_type = EPOLL;
@@ -1700,7 +1704,7 @@ static int parse_common_opt( const AOPT_OBJECT *common_obj )
 					strncpy(fd_handle_type, optarg, MAX_ARGV_SIZE);
 					fd_handle_type[MAX_ARGV_SIZE - 1] = '\0';
 #ifndef WIN32
-#ifndef __FreeBSD__
+#if !defined (__FreeBSD__) && !defined (__APPLE__)
 					if (!strcmp( fd_handle_type, "epoll" ) || !strcmp( fd_handle_type, "e")) {
 						s_user_params.fd_handler_type = EPOLL;
 					}
@@ -1815,6 +1819,9 @@ static int parse_common_opt( const AOPT_OBJECT *common_obj )
 					log_msg("'-%d' Invalid select timeout val: %s", OPT_SELECT_TIMEOUT, optarg);
 #elif __FreeBSD__
 					log_msg("'-%d' Invalid select/poll timeout val: %s", OPT_SELECT_TIMEOUT, optarg);
+#elif __APPLE__
+					log_msg("'-%d' Invalid select/poll timeout val: %s", OPT_SELECT_TIMEOUT, optarg);
+
 #else
 					log_msg("'-%d' Invalid select/poll/epoll timeout val: %s", OPT_SELECT_TIMEOUT, optarg);
 #endif
@@ -1998,7 +2005,7 @@ static int parse_common_opt( const AOPT_OBJECT *common_obj )
 			rc = SOCKPERF_ERR_BAD_ARGUMENT;
 		}
 #endif
-#ifndef __FreeBSD__
+#if !defined (__FreeBSD__) && !defined (__APPLE__)
 		if ( !rc && aopt_check(common_obj, OPT_LOAD_VMA) ) {
 			const char* optarg = aopt_value(common_obj, OPT_LOAD_VMA);
 			//s_user_params.b_load_vma = true;
@@ -2259,7 +2266,7 @@ static void set_select_timeout(int time_out_msec)
 //------------------------------------------------------------------------------
 void set_defaults()
 {
-#if ! defined (WIN32) && ! defined (__FreeBSD__)
+#if ! defined (WIN32) && ! defined (__FreeBSD__) && ! defined (__APPLE__)
 	bool success = vma_set_func_pointers(false);
 	if (!success) {
 		log_dbg("Failed to set function pointers for system functions.");
@@ -2864,7 +2871,7 @@ static int set_sockets_from_feedfile(const char *feedfile_name)
 		return SOCKPERF_ERR_NOT_EXIST;
 	}
 	/* a map to keep records on the address we received */
-#ifndef __FreeBSD__
+#if !defined (__FreeBSD__) && !defined (__APPLE__)
 	std::tr1::unordered_map<port_and_type, int> fd_socket_map; //<port,fd>
 #else
 	std::unordered_map<port_and_type, int> fd_socket_map; //<port,fd>

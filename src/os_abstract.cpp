@@ -151,7 +151,7 @@ os_thread_t os_getthread(void)
 #ifdef WIN32
 	mythread.tid = GetCurrentThreadId();
 	mythread.hThread = GetCurrentThread();
-#elif __FreeBSD__
+#elif defined (__FreeBSD__) || defined (__APPLE__)
 	mythread.tid = pthread_self();
 #else
 	mythread.tid = syscall(__NR_gettid);
@@ -359,6 +359,32 @@ bool os_sock_cleanup()
 #endif
 }
 
+#ifdef __APPLE__
+#define SYSCTL_CORE_COUNT   "machdep.cpu.core_count"
+static inline void CPU_ZERO(cpu_set_t *cs) { cs->count = 0; }
+
+static inline void CPU_SET(int num, cpu_set_t *cs) { cs->count |= (1 << num); }
+
+static inline int CPU_ISSET(int num, const cpu_set_t *cs) { return (cs->count & (1 << num)); }
+
+int pthread_setaffinity_np(pthread_t thread, size_t cpu_size,
+                           const cpu_set_t *cpu_set)
+{
+  thread_port_t mach_thread;
+  int core = 0;
+
+  for (core = 0; core < 8 * cpu_size; core++) {
+    if (CPU_ISSET(core, cpu_set)) break;
+  }
+  printf("binding to core %d\n", core);
+  thread_affinity_policy_data_t policy = { core };
+  mach_thread = pthread_mach_thread_np(thread);
+  thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY,
+                    (thread_policy_t)&policy, 1);
+  return 0;
+}
+#endif
+
 void os_init_cpuset(os_cpuset_t *_mycpuset)
 {
 #ifdef WIN32
@@ -367,6 +393,7 @@ void os_init_cpuset(os_cpuset_t *_mycpuset)
 	CPU_ZERO(&_mycpuset->cpuset);
 #endif
 }
+
 
 void os_cpu_set(os_cpuset_t *_mycpuset, long _cpu_from, long _cpu_cur)
 {
@@ -397,6 +424,8 @@ int os_set_affinity(const os_thread_t & thread, const os_cpuset_t &_mycpuset)
 int os_get_max_active_fds_num() {
 #ifdef WIN32
 	return MAX_OPEN_FILES;
+#elif __APPLE__
+	return 1024;
 #else
 	static int max_active_fd_num = 0;
 	if (!max_active_fd_num) {
@@ -405,7 +434,15 @@ int os_get_max_active_fds_num() {
 			perror ("getrlimit");
 			return 1024; // try the common default
 		}
-		max_active_fd_num = (int) curr_limits.rlim_max;
+		printf("Got rlim_max %d\n", curr_limits.rlim_max);
+		if( curr_limits.rlim_max == -1 ) {
+			printf("Using default: 1024\n");
+			max_active_fd_num = 1024;
+		}
+		else
+		{
+			max_active_fd_num = (int) curr_limits.rlim_max;
+		}
 	}
 	return max_active_fd_num;
 #endif
